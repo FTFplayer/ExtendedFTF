@@ -1,0 +1,96 @@
+local player = game.Players.LocalPlayer
+local hrp = nil
+
+local function GetHRP()
+	local char = player.Character
+	if char then
+		return char:FindFirstChild("HumanoidRootPart")
+	end
+	return nil
+end
+
+local function IsCharacterPart(part)
+	local model = part:FindFirstAncestorOfClass("Model")
+	return model and game.Players:GetPlayerFromCharacter(model) ~= nil
+end
+
+local function IsPureBlock(part)
+	return part:IsA("Part") and part.Shape == Enum.PartType.Block
+end
+
+local function AddOutline(part)
+	local selBox = Instance.new("SelectionBox")
+	selBox.Adornee = part
+	selBox.LineThickness = 0.025
+	selBox.Color3 = Color3.new(1, 1, 1)
+	selBox.SurfaceTransparency = 1
+	selBox.Parent = part
+end
+
+local function RemoveOutline(part)
+	local sel = part:FindFirstChildOfClass("SelectionBox")
+	if sel then sel:Destroy() end
+end
+
+local outlinesEnabled = true
+local RADIUS = 35
+local SCAN_DELAY = 0.3
+local overlapParams = OverlapParams.new()
+overlapParams.FilterType = Enum.RaycastFilterType.Whitelist
+overlapParams.FilterDescendantsInstances = {workspace}
+
+local cachedParts = {}
+
+task.spawn(function()
+	while task.wait(SCAN_DELAY) do
+		if outlinesEnabled then
+			hrp = GetHRP()
+			if hrp then
+				local partsInRadius = workspace:GetPartBoundsInRadius(hrp.Position, RADIUS, overlapParams)
+				local seen = {}
+
+				for _, part in ipairs(partsInRadius) do
+					if IsPureBlock(part)
+						and not IsCharacterPart(part)
+						and part.Transparency < 0.95
+						and part.CanCollide
+						and (part.Size.X * part.Size.Y * part.Size.Z) >= 45
+					then
+						seen[part] = true
+						if not cachedParts[part] then
+							AddOutline(part)
+							cachedParts[part] = true
+						end
+					end
+				end
+
+				for part in pairs(cachedParts) do
+					if not seen[part] or not part.Parent then
+						RemoveOutline(part)
+						cachedParts[part] = nil
+					end
+				end
+			end
+		else
+			-- nếu tắt thì xoá hết viền
+			if next(cachedParts) then
+				for part in pairs(cachedParts) do
+					RemoveOutline(part)
+				end
+				table.clear(cachedParts)
+			end
+		end
+	end
+end)
+
+-- Hàm toggle để sau này gọi từ menu
+local function Toggle(state)
+	if state ~= nil then
+		outlinesEnabled = state
+	else
+		outlinesEnabled = not outlinesEnabled
+	end
+end
+
+-- Export ra global để menu khác gọi
+getgenv().OutlineToggle = Toggle
