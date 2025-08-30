@@ -54,7 +54,7 @@ task.spawn(function()
 						and not IsCharacterPart(part)
 						and part.Transparency < 0.95
 						and part.CanCollide
-						and (part.Size.X * part.Size.Y * part.Size.Z) >= 45
+						and (part.Size.X * part.Size.Y * part.Size.Z) >= 30
 					then
 						seen[part] = true
 						if not cachedParts[part] then
