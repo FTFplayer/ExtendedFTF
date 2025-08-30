@@ -1,5 +1,6 @@
 local player = game.Players.LocalPlayer
 local hrp = nil
+local running = true -- để dừng vòng lặp khi cleanup
 
 local function GetHRP()
 	local char = player.Character
@@ -42,7 +43,8 @@ overlapParams.FilterDescendantsInstances = {workspace}
 local cachedParts = {}
 
 task.spawn(function()
-	while task.wait(SCAN_DELAY) do
+	while running do
+		task.wait(SCAN_DELAY)
 		if outlinesEnabled then
 			hrp = GetHRP()
 			if hrp then
@@ -83,7 +85,7 @@ task.spawn(function()
 	end
 end)
 
--- Hàm toggle để sau này gọi từ menu
+-- Hàm toggle để menu gọi
 local function Toggle(state)
 	if state ~= nil then
 		outlinesEnabled = state
@@ -92,5 +94,16 @@ local function Toggle(state)
 	end
 end
 
--- Export ra global để menu khác gọi
+-- Cleanup toàn bộ (tắt script + dừng vòng lặp)
+local function Cleanup()
+	outlinesEnabled = false
+	running = false
+	for part in pairs(cachedParts) do
+		RemoveOutline(part)
+	end
+	table.clear(cachedParts)
+end
+
+-- Xuất ra global để menu gọi
 getgenv().OutlineToggle = Toggle
+getgenv().OutlineCleanup = Cleanup
